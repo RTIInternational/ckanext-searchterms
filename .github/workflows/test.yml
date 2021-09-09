@@ -37,7 +37,6 @@ jobs:
     - name: Install requirements
       run: |
         ls /srv/app/src
-        cd /srv/app/src
         pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r dev-requirements.txt
