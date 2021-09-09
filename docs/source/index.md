@@ -14,6 +14,21 @@ maxdepth: 2
 
 This CKAN extension allows plugins to create search terms for a dataset that meets certain criteria. These searchterms are then uploaded to the dataset and indexed by Solr.
 
+## Requirements
+
+This plugin is compatible with CKAN 2.9 or later.
+
+## Installation
+
+```
+pip install -e "git+https://github.com/RTIInternational/ckanext-searchterms.git#egg=ckanext-searchterms"
+```
+
+## Usage
+
+This extension is not standalone but meant to be extended by your own CKAN plugin using the two provided interfaces.
+
+
 **Example searchterms usage in a plugin**
 
 ```
