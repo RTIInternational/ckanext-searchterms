@@ -8,6 +8,7 @@ jobs:
     container:
       # Use an Ubuntu image since it installs pandas faster than Alpine
       image: keitaro/ckan:2.9-focal
+      options: -u root
     services:
       solr:
         image: ckan/ckan-solr-dev:2.9
@@ -33,7 +34,6 @@ jobs:
     - uses: actions/checkout@v2
       with:
         ref: main
-        path: /srv/app/src
     - name: Install requirements
       run: |
         ls /srv/app/src
