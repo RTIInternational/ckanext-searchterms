@@ -3,12 +3,11 @@ on: [push, pull_request]
 jobs:
 
   test:
-    # needs: lint
-
     name: CKAN 2.9
     runs-on: ubuntu-latest
     container:
-      image: openknowledge/ckan-dev:2.9
+      # Use an Ubuntu image since it installs pandas faster than Alpine
+      image: keitaro/ckan:2.9-focal
     services:
       solr:
         image: ckan/ckan-solr-dev:2.9
