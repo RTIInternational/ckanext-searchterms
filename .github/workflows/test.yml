@@ -37,6 +37,7 @@ jobs:
         ls /srv/app/src
         pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -r /srv/app/src/ckan/dev-requirements.txt
         pip install -r dev-requirements.txt
         pip install -e .
         pip install -U requests[security]
