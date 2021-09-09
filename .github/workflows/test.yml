@@ -31,8 +31,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: main
+        path: /srv/app/src
     - name: Install requirements
       run: |
+        ls /srv/app/src
+        cd /srv/app/src
         pip install -v -r requirements.txt
         pip install -r dev-requirements.txt
         pip install -e .
