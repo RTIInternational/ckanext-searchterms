@@ -32,8 +32,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        ref: main
     - name: Install requirements
       run: |
         ls /srv/app/src
