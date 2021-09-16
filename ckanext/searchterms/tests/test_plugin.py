@@ -3,7 +3,7 @@ import pytest
 
 from ckanext.searchterms.implementations import (
     is_eligible,
-    # calculate_stats,
+    # get_searchterms,
 )
 
 
