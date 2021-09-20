@@ -58,7 +58,7 @@ class SearchtermsCmd:
             if is_eligible:
                 log.info("Enqueueing search terms job for resource " + rsrcid)
                 if self.run_in_foreground:
-                    check_search_terms_resource(resource, resource_update=True)
+                    check_search_terms_resource(resource, resource_was_updated=True)
                 else:
                     toolkit.enqueue_job(
                         check_search_terms_resource,
