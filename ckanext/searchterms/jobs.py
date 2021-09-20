@@ -4,6 +4,7 @@ import pandas as pd
 import uuid
 from werkzeug.datastructures import FileStorage
 import ckan.plugins.toolkit as tk
+from .constants import SearchtermsParsingError
 from .implementations import is_eligible, get_terms
 from .util import (
     BLANK,
@@ -82,7 +83,10 @@ def check_search_terms_resource(resource, resource_was_updated=False):
     searchterms_df, _ = get_existing_search_terms_df_from_csv(dataset)
 
     # Parse the resource for new search terms
-    new_terms_df, key = get_terms(resource, dataset, searchterms_df)
+    try:
+        new_terms_df, key = get_terms(resource, dataset, searchterms_df)
+    except SearchtermsParsingError as e:
+        return add_error(dataset, str(e))
     if searchterms_df is not None:
         # Update existing searchterms DataFrame.
         # If the resource was updated and already exists in the searchterms DataFrame, remove it
@@ -104,11 +108,8 @@ def update_searchterms(rsrc_col, new_terms_df, key, searchterms_df):
     """
     Merges new searchterms DataFrame into existing searchterms DataFrame.
 
-    1) Call get_terms() which returns a DataFrame of terms and a key to index it by.
-    2) Determine if these terms are already in the old searchterms DataFrame.
-       If so, _update_ them in the searchterms DataFrame.
-    3) Determine if there are new terms not existing in the old searchterms DataFrame.
-       If so, _append_ them to the searchterms DataFrame.
+    1) If these terms are already in the old searchterms DataFrame, _update_ them
+    3) If there are new terms not existing in the old searchterms DataFrame, _append_ them
     """
 
     # Add a new column to the searchterms DataFrame and initialize all rows to BLANK
@@ -207,7 +208,7 @@ def upload_to_ckan(filepath, name, dataset_id):
     updatedPackage = tk.get_action("package_show")(
         site_user_context(), {"id": dataset_id}
     )
-    updatedPackage["gene_tags_error"] = ""
+    updatedPackage["searchterms_error"] = BLANK
     final = tk.get_action("package_update")(site_user_context(), updatedPackage)
     return final
 
@@ -219,3 +220,9 @@ def delete_existing_search_terms(resource):
     for res in pkg.get("resources"):
         if res.get("name") == TERMS_RSRC_NAME:
             tk.get_action("resource_delete")(site_user_context(), res)
+
+
+def add_error(dataset, e):
+    errormessage = "Unable to process your data file for search. Error: {}".format(e)
+    dataset["searchterms_error"] = errormessage
+    tk.get_action("package_update")(site_user_context(), dataset)

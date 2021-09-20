@@ -58,6 +58,10 @@ class MyPlugin(plugins.SingletonPlugin):
 
 When a dataset's resource is created or updated, searchterms will call `is_eligible` to see if it should `get_searchterms` and update.
 
+## Schema
+
+The searchterms plugin will set the field `searchterms_error` on the dataset if there is an error. This field must be added to your dataset schema if you want it available on the dataset.
+
 ## What sort of search terms might be generated?
 
 A simple example could be a dataset containing information about a set of people and their favorite foods. Using this plugin, you could implement a `is_eligible` function that checks if the dataset does indeed contain such data, then implement a `get_searchterms` function to parse the data for search terms, e.g. `["apples", "oranges"]`. When the user searches for `apples`, the datasets containing `apples` will be returned.
