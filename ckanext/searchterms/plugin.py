@@ -40,27 +40,11 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
                 context["file_uploaded"] = True
 
     def after_create(self, context, resource):
-        if resource.get("name") != TERMS_RSRC_NAME and is_eligible(resource):
-            log.debug(
-                "searchterms after_create -> enqueue_terms_job rsrc: {} {}".format(
-                    resource.get("name"), resource.get("id")
-                )
-            )
-            enqueue_terms_job(resource)
+        enqueue_terms_job(resource)
 
     def after_update(self, context, resource):
-        if (
-            resource.get("package_id", False)
-            and is_eligible(resource)
-            and context["file_uploaded"]
-        ):
-            tk.enqueue_job(
-                check_search_terms_resource,
-                [resource],
-                rq_kwargs={"timeout": 21600},
-                queue="searchterms",
-            )
-            # enqueue_terms_job(resource)
+        if context["file_uploaded"]:
+            enqueue_terms_job(resource)
 
     # doesn't actually run for some reason
     def before_delete(self, context, resource, resources):

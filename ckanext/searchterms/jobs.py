@@ -19,7 +19,11 @@ log = logging.getLogger(__name__)
 # If resource is eligible, add terms job to worker queue
 def enqueue_terms_job(resource):
     # Check package_id exists to make sure it's not a package
-    if resource.get("package_id", False) and is_eligible(resource):
+    if (
+        resource.get("name") != TERMS_RSRC_NAME
+        and resource.get("package_id", False)
+        and is_eligible(resource)
+    ):
         tk.enqueue_job(
             check_search_terms_resource,
             [resource],
