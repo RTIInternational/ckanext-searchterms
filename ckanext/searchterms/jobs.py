@@ -43,6 +43,7 @@ def get_existing_search_terms_df_from_csv(pkg):
     search_terms_resource_id = None
     for rsc in pkg.get("resources"):
         if rsc.get("name") == TERMS_RSRC_NAME:
+            log.debug("Found existing searchterms resource")
             filepath = get_resource_file_path(rsc.get("id"))
             search_terms_resource_id = rsc.get("id")
             try:
@@ -81,6 +82,7 @@ def check_search_terms_resource(resource, resource_was_updated=False):
     searchterms_df = None
     # Get the search terms resource as a DataFrame, if it exists
     searchterms_df, _ = get_existing_search_terms_df_from_csv(dataset)
+    log.debug("searchterms_df = {}".format(searchterms_df))
 
     # Parse the resource for new search terms
     try:
@@ -111,6 +113,7 @@ def update_searchterms(rsrc_col, new_terms_df, key, searchterms_df):
     1) If these terms are already in the old searchterms DataFrame, _update_ them
     3) If there are new terms not existing in the old searchterms DataFrame, _append_ them
     """
+    log.debug("Updating searchterms")
 
     # Add a new column to the searchterms DataFrame and initialize all rows to BLANK
     searchterms_df[rsrc_col] = BLANK
@@ -138,6 +141,7 @@ def update_searchterms(rsrc_col, new_terms_df, key, searchterms_df):
 # This method drops the column for a given resource ID from the searchterms table
 # But it first loops through all rows of the searchterms table, removing any if unused by other resources
 def remove_resource_from_search_terms(resource_id, search_terms_df):
+    log.debug("Removing resource from searchterms")
     rsrc_col_to_delete = "rsrc-{}".format(resource_id)
     other_rsrc_cols = [
         col
@@ -161,6 +165,7 @@ def remove_resource_from_search_terms(resource_id, search_terms_df):
 
 
 def update_search_terms_on_delete(resource):
+    log.debug("Updating searchterms because resource was deleted")
     dataset = tk.get_action("package_show")(
         site_user_context(), {"id": resource.get("package_id")}
     )

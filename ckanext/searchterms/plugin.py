@@ -40,7 +40,13 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
                 context["file_uploaded"] = True
 
     def after_create(self, context, resource):
-        enqueue_terms_job(resource)
+        if resource.get("name") != TERMS_RSRC_NAME and is_eligible(resource):
+            log.info(
+                "searchterms after_create -> enqueue_terms_job rsrc: {} {}".format(
+                    resource.get("name"), resource.get("id")
+                )
+            )
+            enqueue_terms_job(resource)
 
     def after_update(self, context, resource):
         if (

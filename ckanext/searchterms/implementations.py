@@ -12,7 +12,7 @@ Plugins should add their implementations using the interface
 def is_eligible(resource):
     """
     Calls a function, `is_eligible(resource) -> boolean`
-    that is used to determine if summary stats should be calculated for the
+    that is used to determine if search terms should be calculated for the
     given resource
     """
 
