@@ -41,7 +41,7 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
 
     def after_create(self, context, resource):
         if resource.get("name") != TERMS_RSRC_NAME and is_eligible(resource):
-            log.info(
+            log.debug(
                 "searchterms after_create -> enqueue_terms_job rsrc: {} {}".format(
                     resource.get("name"), resource.get("id")
                 )
