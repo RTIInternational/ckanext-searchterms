@@ -43,7 +43,7 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
         enqueue_terms_job(resource)
 
     def after_update(self, context, resource):
-        if context["file_uploaded"]:
+        if context.get("file_uploaded"):
             enqueue_terms_job(resource)
 
     # doesn't actually run for some reason

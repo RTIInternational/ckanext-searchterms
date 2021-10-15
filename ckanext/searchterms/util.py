@@ -3,6 +3,7 @@ import os
 from ckan import model
 import ckan.plugins.toolkit as tk
 
+SEARCHTERMS_ERROR = "searchterms_error"
 TERMS_RSRC_NAME = "Search Terms"
 TRUE = True
 BLANK = ""

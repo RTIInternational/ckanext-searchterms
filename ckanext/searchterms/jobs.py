@@ -8,6 +8,7 @@ from .constants import SearchtermsParsingError
 from .implementations import is_eligible, get_terms
 from .util import (
     BLANK,
+    SEARCHTERMS_ERROR,
     TERMS_RSRC_NAME,
     TRUE,
     get_resource_file_path,
@@ -217,7 +218,7 @@ def upload_to_ckan(filepath, name, dataset_id):
     updatedPackage = tk.get_action("package_show")(
         site_user_context(), {"id": dataset_id}
     )
-    updatedPackage["searchterms_error"] = BLANK
+    updatedPackage[SEARCHTERMS_ERROR] = BLANK
     final = tk.get_action("package_update")(site_user_context(), updatedPackage)
     return final
 
@@ -233,5 +234,5 @@ def delete_existing_search_terms(resource):
 
 def add_error(dataset, e):
     errormessage = "Unable to process your data file for search. Error: {}".format(e)
-    dataset["searchterms_error"] = errormessage
+    dataset[SEARCHTERMS_ERROR] = errormessage
     tk.get_action("package_update")(site_user_context(), dataset)
