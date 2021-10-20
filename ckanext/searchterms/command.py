@@ -56,10 +56,11 @@ class SearchtermsCmd:
         for resource in package.get("resources", []):
             rsrcid = resource.get("id") + " (" + resource.get("name") + ")"
             if is_eligible(resource):
-                log.info("Enqueueing search terms job for resource " + rsrcid)
                 if self.run_in_foreground:
+                    log.info("Checking search terms for resource " + rsrcid)
                     check_search_terms_resource(resource, resource_was_updated=True)
                 else:
+                    log.info("Enqueueing search terms job for resource " + rsrcid)
                     toolkit.enqueue_job(
                         check_search_terms_resource,
                         [resource, True],
