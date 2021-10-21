@@ -53,7 +53,7 @@ class SearchtermsCmd:
     def resubmit_pkg(self, package):
         pkgid = package.get("id") + " (" + package.get("name") + ")"
 
-        if len(package.get("resources", []) == 0):
+        if len(package.get("resources", [])) == 0:
             log.info("No resources found for dataset {}".format(pkgid))
             return
 
