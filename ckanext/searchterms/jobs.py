@@ -213,7 +213,12 @@ def upload_to_ckan(filepath, name, dataset_id):
         }
         # TODO: move the file to its destination on the filesystem instead of uploading to the server
         # Possibly by implementing get_resource_uploader()
-        tk.get_action("resource_create")(site_user_context(), resource_metadata)
+        rsrc = tk.get_action("resource_create")(site_user_context(), resource_metadata)
+        log.info(
+            "Created search terms resource {} for dataset {}".format(
+                rsrc.get("id"), dataset_id
+            )
+        )
 
     updatedPackage = tk.get_action("package_show")(
         site_user_context(), {"id": dataset_id}

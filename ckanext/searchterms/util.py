@@ -28,8 +28,13 @@ def site_user_context():
 def file_exists(resource_id, num_retries=3, delay=0.5):
     # Sometimes after the file was uploaded to CKAN, it takes a second for it to exist
     for try_num in range(0, num_retries):
-        if os.path.exists(get_resource_file_path(resource_id)):
-            log.info("File exists")
+        fpath = get_resource_file_path(resource_id)
+        if os.path.exists(fpath):
+            log.info(
+                "Searchterms file exists; resource ID: {}, path: {}".format(
+                    resource_id, fpath
+                )
+            )
             return True
         elif try_num + 1 != num_retries:
             log.info(
