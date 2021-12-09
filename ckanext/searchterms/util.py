@@ -12,6 +12,7 @@ BLANK = ""
 
 log = logging.getLogger(__name__)
 
+
 def get_resource_file_path(id):
     dir1 = id[0:3]
     dir2 = id[3:6]
@@ -22,6 +23,7 @@ def get_resource_file_path(id):
 def site_user_context():
     user = tk.get_action("get_site_user")({"model": model, "ignore_auth": True}, {})
     return {"ignore_auth": True, "user": user["name"], "auth_user_obj": None}
+
 
 def file_exists(resource_id, num_retries=3, delay=0.5):
     # Sometimes after the file was uploaded to CKAN, it takes a second for it to exist

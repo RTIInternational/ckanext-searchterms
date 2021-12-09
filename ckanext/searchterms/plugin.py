@@ -12,7 +12,12 @@ from .jobs import (
     enqueue_terms_job,
     enqueue_terms_update_on_delete_job,
 )
-from .util import TERMS_RSRC_NAME, file_exists, get_resource_file_path, site_user_context
+from .util import (
+    TERMS_RSRC_NAME,
+    file_exists,
+    get_resource_file_path,
+    site_user_context,
+)
 
 log = logging.getLogger(__name__)
 
