@@ -9,6 +9,7 @@ from ckanext.searchterms.plugin import file_exists
 def test_file_exists(app):
     """ Test the utility function `file_exists` """
 
+    os.environ['CKAN_STORAGE_PATH'] = "/tmp"
     resource_id = "abcdefmytest"
 
     # Delete file if it exists from previous test run
