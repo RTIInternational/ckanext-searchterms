@@ -12,7 +12,12 @@ from .jobs import (
     enqueue_terms_job,
     enqueue_terms_update_on_delete_job,
 )
-from .util import TERMS_RSRC_NAME, get_resource_file_path, site_user_context
+from .util import (
+    TERMS_RSRC_NAME,
+    file_exists,
+    get_resource_file_path,
+    site_user_context,
+)
 
 log = logging.getLogger(__name__)
 
@@ -55,32 +60,38 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
         pkg = tk.get_action("package_show")(
             site_user_context(), {"id": pkg_dict.get("id")}
         )
-        try:
-            filteredResources = list(
-                filter(
-                    lambda rsrc: rsrc.get("name") == TERMS_RSRC_NAME,
-                    pkg.get("resources", []),
-                )
+        filteredResources = list(
+            filter(
+                lambda rsrc: rsrc.get("name") == TERMS_RSRC_NAME,
+                pkg.get("resources", []),
             )
-            if len(filteredResources):
-                genes = filteredResources[0]
-                df = pd.read_csv(get_resource_file_path(genes.get("id")), sep="\t")
-                data = df.values.flatten().tolist()
-                hundreds = math.ceil(len(data) / float(100))
-                for i in range(int(hundreds)):
+        )
+        if len(filteredResources):
+            searchterms_resource_id = filteredResources[0].get("id")
+            try:
+                if file_exists(searchterms_resource_id):
+                    df = pd.read_csv(
+                        get_resource_file_path(searchterms_resource_id), sep="\t"
+                    )
+                    data = df.values.flatten().tolist()
+                    hundreds = math.ceil(len(data) / float(100))
+                    for i in range(int(hundreds)):
 
-                    def upper_bound(proposed, max_len=len(data)):
-                        return max_len if proposed > max_len else proposed
+                        def upper_bound(proposed, max_len=len(data)):
+                            return max_len if proposed > max_len else proposed
 
-                    key = pkg.get("id") + "_search_term_" + str(i)
-                    min = int(i * 100)
-                    max = upper_bound((i + 1) * 100)
-                    data_slice = data[min:max]
-                    pkg_dict["extras_" + key] = json.dumps(data_slice)
-        except Exception:
-            err_msg = "An error occurred in building the index for package {0}"
-            log.error(err_msg.format(pkg.get("name")))
-            raise
+                        key = pkg.get("id") + "_search_term_" + str(i)
+                        min = int(i * 100)
+                        max = upper_bound((i + 1) * 100)
+                        data_slice = data[min:max]
+                        pkg_dict["extras_" + key] = json.dumps(data_slice)
+                else:
+                    log.error("Search terms resource exists but file does not.")
+            except Exception:
+                err_msg = "An error occurred in building the index for package {0}"
+                log.error(err_msg.format(pkg.get("name")))
+                raise
+
         return pkg_dict
 
     # IConfigurer

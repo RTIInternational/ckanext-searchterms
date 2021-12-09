@@ -36,9 +36,9 @@ def submit(dataset_spec, fg):
     if dataset_spec == "all":
         cmd.submit_all_pkgs()
     else:
-        pkg_id = cmd.identify_pkg(dataset_spec)
-        if pkg_id:
-            cmd.resubmit_pkg(pkg_id)
+        dataset = cmd.identify_pkg(dataset_spec)
+        if dataset:
+            cmd.resubmit_pkg(dataset)
 
 
 def get_commands():
