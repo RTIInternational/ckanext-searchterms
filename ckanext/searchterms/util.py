@@ -1,5 +1,4 @@
 import os
-import time
 import logging
 
 from ckan import model
@@ -23,22 +22,3 @@ def get_resource_file_path(id):
 def site_user_context():
     user = tk.get_action("get_site_user")({"model": model, "ignore_auth": True}, {})
     return {"ignore_auth": True, "user": user["name"], "auth_user_obj": None}
-
-
-def file_exists(resource_id, num_retries=3, delay=0.5):
-    # Sometimes after the file was uploaded to CKAN, it takes a second for it to exist
-    for try_num in range(0, num_retries):
-        fpath = get_resource_file_path(resource_id)
-        if os.path.exists(fpath):
-            log.info(
-                "Searchterms file exists; resource ID: {}, path: {}".format(
-                    resource_id, fpath
-                )
-            )
-            return True
-        elif try_num + 1 != num_retries:
-            log.info(
-                "Retrying file_exists({}) (retry {})".format(resource_id, try_num + 1)
-            )
-            time.sleep(delay)
-    return False

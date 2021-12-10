@@ -1,6 +1,7 @@
 import math
 import json
 import logging
+from os.path import exists
 
 from ckan import plugins
 import ckan.plugins.toolkit as tk
@@ -14,7 +15,6 @@ from .jobs import (
 )
 from .util import (
     TERMS_RSRC_NAME,
-    file_exists,
     get_resource_file_path,
     site_user_context,
 )
@@ -67,12 +67,10 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
             )
         )
         if len(filteredResources):
-            searchterms_resource_id = filteredResources[0].get("id")
-            try:
-                if file_exists(searchterms_resource_id):
-                    df = pd.read_csv(
-                        get_resource_file_path(searchterms_resource_id), sep="\t"
-                    )
+            fpath = get_resource_file_path(filteredResources[0].get("id"))
+            if exists(fpath):
+                try:
+                    df = pd.read_csv(fpath, sep="\t")
                     data = df.values.flatten().tolist()
                     hundreds = math.ceil(len(data) / float(100))
                     for i in range(int(hundreds)):
@@ -85,12 +83,14 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
                         max = upper_bound((i + 1) * 100)
                         data_slice = data[min:max]
                         pkg_dict["extras_" + key] = json.dumps(data_slice)
-                else:
-                    log.error("Search terms resource exists but file does not.")
-            except Exception:
-                err_msg = "An error occurred in building the index for package {0}"
-                log.error(err_msg.format(pkg.get("name")))
-                raise
+
+                except Exception:
+                    err_msg = "An error occurred in building the index for package {0}"
+                    log.error(err_msg.format(pkg.get("name")))
+                    raise
+            else:
+                # Happens when resource is created, package updated with metadata, but file not uploaded yet
+                log.debug("Search terms resource exists but file does not.")
 
         return pkg_dict
 
