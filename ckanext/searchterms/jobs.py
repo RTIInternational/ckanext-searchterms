@@ -122,6 +122,7 @@ def update_searchterms(rsrc_col, new_terms_df, key, searchterms_df):
 
     # Add a new column to the searchterms DataFrame and initialize all rows to BLANK
     searchterms_df[rsrc_col] = BLANK
+    searchterms_df = searchterms_df.astype(str)
 
     # If there are existing terms we need to update rows for, do so
     existing_terms_df = new_terms_df[
