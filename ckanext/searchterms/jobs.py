@@ -1,4 +1,5 @@
 import os
+import itertools
 import logging
 import pandas as pd
 import uuid
@@ -78,6 +79,7 @@ def check_search_terms_resource(resource, resource_was_updated=False):
     """
     Check for existing searchterms, update if it exists, otherwise create it
     """
+
     dataset = tk.get_action("package_show")(
         site_user_context(), {"id": resource.get("package_id")}
     )
@@ -86,87 +88,70 @@ def check_search_terms_resource(resource, resource_was_updated=False):
 
     searchterms_df = None
     # Get the search terms resource as a DataFrame, if it exists
+    log.info(f"Generating search terms for resource {resource.get('name')}")
     searchterms_df, _ = get_existing_search_terms_df_from_csv(dataset)
-    log.debug("searchterms_df = {}".format(searchterms_df))
-
-    # Parse the resource for new search terms
     try:
-        new_terms_df, key = get_terms(resource, dataset, searchterms_df)
+        new_terms_df = get_terms(resource, dataset, searchterms_df)
+        new_terms_df = create_initial_searchterms(rsrc_col, new_terms_df)
     except SearchtermsParsingError as e:
         return add_error(dataset, str(e))
     if searchterms_df is not None:
-        # Update existing searchterms DataFrame.
-        # If the resource was updated and already exists in the searchterms DataFrame, remove it
         if resource_was_updated and rsrc_col in searchterms_df.columns:
-            searchterms_df = remove_resource_from_search_terms(rsrc_id, searchterms_df)
-
-        searchterms_df = update_searchterms(rsrc_col, new_terms_df, key, searchterms_df)
+            searchterms_df = remove_resource_from_search_terms(rsrc_col, searchterms_df)
+        searchterms_df = update_searchterms(rsrc_col, new_terms_df, searchterms_df)
         delete_existing_search_terms(resource)
     else:
-        # Add a new column to the terms DataFrame and initialize all rows to TRUE
-        new_terms_df[rsrc_col] = TRUE
         searchterms_df = new_terms_df
-
     save_file(searchterms_df, dataset.get("id"))
     return searchterms_df
 
 
-def update_searchterms(rsrc_col, new_terms_df, key, searchterms_df):
+def create_initial_searchterms(rsrc_col, new_terms_df):
+    """ """
+    log.info("Converting output to search terms file")
+    new_terms_df[rsrc_col] = "True"
+    return new_terms_df
+
+
+def update_searchterms(rsrc_col, new_terms_df, searchterms_df):
     """
     Merges new searchterms DataFrame into existing searchterms DataFrame.
 
     1) If these terms are already in the old searchterms DataFrame, _update_ them
     3) If there are new terms not existing in the old searchterms DataFrame, _append_ them
     """
-    log.debug("Updating searchterms")
+    log.info("Merging new searchterms with old searchterms")
 
-    # Add a new column to the searchterms DataFrame and initialize all rows to BLANK
-    searchterms_df[rsrc_col] = BLANK
-
-    # If there are existing terms we need to update rows for, do so
-    existing_terms_df = new_terms_df[
-        new_terms_df[key].str.lower().isin(searchterms_df[key].str.lower())
+    new_terms_identifiers = get_identifiercols(new_terms_df)
+    searchterms_identifiers = get_identifiercols(searchterms_df)
+    ## merge lists of identifiers and deduplicate
+    shared_identifiers = [
+        column for column in searchterms_identifiers if column in new_terms_identifiers
     ]
-    if not existing_terms_df.empty:
-        for index, row in searchterms_df.iterrows():
-            if row[key].lower() in existing_terms_df[key].str.lower().values:
-                searchterms_df.at[index, rsrc_col] = TRUE
-    # If there are new terms we need to add to our table, do so
-    new_unique_terms_df = new_terms_df[
-        ~new_terms_df[key].str.lower().isin(searchterms_df[key].str.lower())
-    ].copy(deep=True)
-    if not new_unique_terms_df.empty:
-        new_unique_terms_df[rsrc_col] = TRUE
-        searchterms_df = searchterms_df.append(
-            new_unique_terms_df, ignore_index=True, sort=False
-        )
-    return searchterms_df
+    merged = searchterms_df.merge(
+        new_terms_df, how="outer", on=shared_identifiers, suffixes=(None, "_drop")
+    )
+    dropcols = [
+        column for column in merged.columns.values.tolist() if ("_drop" in column)
+    ]
+    merged.drop(columns=dropcols, inplace=True)
+    merged.drop_duplicates(inplace=True)
+    merged.fillna(value="", inplace=True)
+    return merged
 
 
 # This method drops the column for a given resource ID from the searchterms table
 # But it first loops through all rows of the searchterms table, removing any if unused by other resources
-def remove_resource_from_search_terms(resource_id, search_terms_df):
-    log.debug("Removing resource from searchterms")
-    rsrc_col_to_delete = "rsrc-{}".format(resource_id)
-    other_rsrc_cols = [
-        col
-        for col in search_terms_df
-        if col.startswith("rsrc-") and col != rsrc_col_to_delete
+def remove_resource_from_search_terms(rsrc_col, searchterms_df):
+    log.info("Update detected - removing old search terms for this resource")
+    # remove old column
+    searchterms_df.drop(columns=[rsrc_col], inplace=True)
+    # drop any rows that should no longer exist because that column is gone
+    rsrc_cols = [
+        column for column in searchterms_df.columns.values.tolist() if "rsrc" in column
     ]
-    rows_to_drop = []
-    # checks for empty rows and and creates a list of empty row indices to delete (so we're not modifying what we're iterating over)
-    for index, row in search_terms_df.iterrows():
-        gene_tag_exists = False
-        for col in other_rsrc_cols:
-            if row[col] == TRUE:
-                gene_tag_exists = True
-                break
-        if not gene_tag_exists:
-            rows_to_drop.append(index)
-    search_terms_df.drop(rows_to_drop, inplace=True)
-    search_terms_df.drop(rsrc_col_to_delete, axis="columns", inplace=True)
-    search_terms_df.reset_index(inplace=True)
-    return search_terms_df
+    searchterms_df.dropna(axis="rows", how="all", subset=[rsrc_cols], inplace=True)
+    return searchterms_df
 
 
 def update_search_terms_on_delete(resource):
@@ -190,6 +175,7 @@ def update_search_terms_on_delete(resource):
 
 def save_file(searchterms_df, dataset_id):
     # Write tmp file
+    log.info("Writing temporary searchterms file to disk")
     tsv_filename = os.path.join("/tmp", "searchterms-{}".format(uuid.uuid4())) + ".tsv"
     if "index" in searchterms_df.columns.values:
         searchterms_df.drop(columns=["index"], inplace=True)
@@ -204,6 +190,7 @@ def save_file(searchterms_df, dataset_id):
 
 
 def upload_to_ckan(filepath, name, dataset_id):
+    log.info("Uploading search terms file from disk to ckan")
     with open(filepath, "rb") as file:
         resource_metadata = {
             "name": name,
@@ -241,3 +228,19 @@ def add_error(dataset, e):
     errormessage = "Unable to process your data file for search. Error: {}".format(e)
     dataset[SEARCHTERMS_ERROR] = errormessage
     tk.get_action("package_update")(site_user_context(), dataset)
+
+
+def get_termcols(dataframe):
+    return [column for column in dataframe.columns.values.tolist() if "Term" in column]
+
+
+def get_identifiercols(dataframe):
+    return [
+        column
+        for column in dataframe.columns.values.tolist()
+        if "rsrc" not in column and "Term" not in column
+    ]
+
+
+def get_rsrccols(dataframe):
+    return [column for column in dataframe.columns.values.tolist() if "rsrc" in column]
