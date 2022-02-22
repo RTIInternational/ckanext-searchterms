@@ -60,7 +60,18 @@ When a dataset's resource is created or updated, searchterms will call `is_eligi
 
 ## Schema
 
-The searchterms plugin will set the field `searchterms_error` on the dataset if there is an error. This field must be added to your dataset schema if you want it available on the dataset.
+The searchterms plugin will set the field `searchterms_error` on the resource if there is an error. This field must be added to your dataset schema if you want it available on the resource.
+
+```
+{
+    "resource_fields": [
+        {
+            "field_name": "searchterms_error",
+            "validators": "ignore_missing"
+        }
+    ]
+}
+```
 
 ## What sort of search terms might be generated?
 
