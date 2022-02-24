@@ -93,7 +93,7 @@ def check_search_terms_resource(resource, resource_was_updated=False):
     try:
         new_terms_df, key = get_terms(resource, dataset, searchterms_df)
     except SearchtermsParsingError as e:
-        return add_error(dataset, str(e))
+        return add_error(resource, str(e))
     if searchterms_df is not None:
         # Update existing searchterms DataFrame.
         # If the resource was updated and already exists in the searchterms DataFrame, remove it
@@ -238,7 +238,7 @@ def delete_existing_search_terms(resource):
             tk.get_action("resource_delete")(site_user_context(), res)
 
 
-def add_error(dataset, e):
-    errormessage = "Unable to process your data file for search. Error: {}".format(e)
-    dataset[SEARCHTERMS_ERROR] = errormessage
-    tk.get_action("package_update")(site_user_context(), dataset)
+def add_error(resource, e):
+    errormessage = "Unable to process your resource for search. Error: {}".format(e)
+    resource[SEARCHTERMS_ERROR] = errormessage
+    tk.get_action("resource_update")(site_user_context(), resource)
