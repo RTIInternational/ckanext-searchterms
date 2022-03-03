@@ -1,5 +1,4 @@
 import os
-import itertools
 import logging
 import pandas as pd
 import uuid
@@ -102,6 +101,7 @@ def check_search_terms_resource(resource, resource_was_updated=False):
         delete_existing_search_terms(resource)
     else:
         searchterms_df = new_terms_df
+    searchterms_df = add_search_index_to_search_terms(searchterms_df)
     save_file(searchterms_df, dataset.get("id"))
     return searchterms_df
 
@@ -148,9 +148,7 @@ def remove_resource_from_search_terms(rsrc_col, searchterms_df):
     # remove old column
     searchterms_df.drop(columns=[rsrc_id], inplace=True)
     # drop any rows that should no longer exist because that column is gone
-    rsrc_cols = [
-        column for column in searchterms_df.columns if "rsrc" in column
-    ]
+    rsrc_cols = get_rsrccols(searchterms_df)
     searchterms_df.dropna(how="all", subset=rsrc_cols, inplace=True)
     return searchterms_df
 
@@ -223,6 +221,19 @@ def delete_existing_search_terms(resource):
     for res in pkg.get("resources"):
         if res.get("name") == TERMS_RSRC_NAME:
             tk.get_action("resource_delete")(site_user_context(), res)
+
+
+def add_search_index_to_search_terms(searchterms_df):
+    """
+    adds a || separated string column to each row as a 'search_index' for use in the explorer tool
+    """
+    if "search_index" in searchterms_df.columns:
+        searchterms_df.drop(columns=["search_index"], inplace=True)
+    indexable_cols = get_termcols(searchterms_df) + get_identifiercols(searchterms_df)
+    searchterms_df["search_index"] = searchterms_df[indexable_cols].agg(
+        "||".join, axis=1
+    )
+    return searchterms_df
 
 
 def add_error(dataset, e):
