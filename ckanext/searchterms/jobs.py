@@ -146,10 +146,8 @@ def remove_resource_from_search_terms(rsrc_col, searchterms_df):
     log.info("Update detected - removing old search terms for this resource")
     # remove old column
     searchterms_df.drop(columns=[rsrc_col], inplace=True)
-    log.info(f"dropped column {rsrc_col}")
     # drop any rows that should no longer exist because that column is gone
     rsrc_cols = get_rsrccols(searchterms_df)
-    log.info(f"resource cols: {rsrc_cols}")
     searchterms_df.dropna(axis="rows", how="all", subset=[rsrc_cols], inplace=True)
     return searchterms_df
 
