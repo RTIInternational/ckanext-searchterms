@@ -70,7 +70,7 @@ class SearchtermsCmd:
                         check_search_terms_resource,
                         [resource, True],
                         rq_kwargs={"timeout": 21600},
-                        queue=u"searchterms",
+                        queue="searchterms",
                     )
             else:
                 log.debug("Skipping search terms job for resource " + rsrcid)

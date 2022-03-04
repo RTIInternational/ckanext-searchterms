@@ -24,7 +24,7 @@ def searchterms():
 
 
 @searchterms.command()
-@click.argument(u"dataset-spec")
+@click.argument("dataset-spec")
 @click.option(
     "--fg", is_flag=True, default=False, help="Runs the gene tagger in the foreground"
 )
