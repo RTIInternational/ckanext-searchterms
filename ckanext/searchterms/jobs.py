@@ -144,11 +144,12 @@ def update_searchterms(rsrc_col, new_terms_df, searchterms_df):
 # But it first loops through all rows of the searchterms table, removing any if unused by other resources
 def remove_resource_from_search_terms(rsrc_col, searchterms_df):
     log.info("Update detected - removing old search terms for this resource")
+    rsrc_id = f"rsrc-{rsrc_col}" if "rsrc" not in rsrc_col else rsrc_col
     # remove old column
-    searchterms_df.drop(columns=[rsrc_col], inplace=True)
+    searchterms_df.drop(columns=[rsrc_id], inplace=True)
     # drop any rows that should no longer exist because that column is gone
     rsrc_cols = get_rsrccols(searchterms_df)
-    searchterms_df.dropna(axis="rows", how="all", subset=[rsrc_cols], inplace=True)
+    searchterms_df.dropna(how="all", subset=rsrc_cols, inplace=True)
     return searchterms_df
 
 
