@@ -93,7 +93,7 @@ def check_search_terms_resource(resource, resource_was_updated=False):
         new_terms_df = get_terms(resource, dataset, searchterms_df)
         new_terms_df = create_initial_searchterms(rsrc_col, new_terms_df)
     except SearchtermsParsingError as e:
-        return add_error(dataset, str(e))
+        return add_error(resource, str(e))
     if searchterms_df is not None:
         if resource_was_updated and rsrc_col in searchterms_df.columns:
             searchterms_df = remove_resource_from_search_terms(rsrc_col, searchterms_df)
@@ -236,10 +236,10 @@ def add_search_index_to_search_terms(searchterms_df):
     return searchterms_df
 
 
-def add_error(dataset, e):
-    errormessage = "Unable to process your data file for search. Error: {}".format(e)
-    dataset[SEARCHTERMS_ERROR] = errormessage
-    tk.get_action("package_update")(site_user_context(), dataset)
+def add_error(resource, e):
+    errormessage = "Unable to process your resource for search. Error: {}".format(e)
+    resource[SEARCHTERMS_ERROR] = errormessage
+    tk.get_action("resource_update")(site_user_context(), resource)
 
 
 def get_termcols(dataframe):
