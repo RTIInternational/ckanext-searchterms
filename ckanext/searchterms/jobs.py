@@ -231,9 +231,11 @@ def add_search_index_to_search_terms(searchterms_df):
         searchterms_df.drop(columns=["search_index"], inplace=True)
     searchterms_df.fillna("")
     indexable_cols = get_termcols(searchterms_df) + get_identifiercols(searchterms_df)
-    searchterms_df["search_index"] = searchterms_df[indexable_cols].agg(
-        "||".join, axis=1
-    ).replace(regex=r"[|]{3,}", value="||", inplace=True)
+    searchterms_df["search_index"] = (
+        searchterms_df[indexable_cols]
+        .agg("||".join, axis=1)
+        .replace(regex=r"[|]{3,}", value="||", inplace=True)
+    )
     return searchterms_df
 
 
