@@ -19,6 +19,11 @@ from .util import (
     site_user_context,
 )
 
+from .indexes import (
+    create_index_for_search_terms_resource,
+    create_indexes_for_identifier_columns,
+)
+
 log = logging.getLogger(__name__)
 
 
@@ -50,6 +55,13 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
     def after_update(self, context, resource):
         if context.get("file_uploaded"):
             enqueue_terms_job(resource)
+        if (
+            resource.get("name", "") == "Search Terms"
+            and resource.get("datastore_active", False) == True
+        ):
+            create_index_for_search_terms_resource(resource)
+        elif resource.get("resource_file_type", "") in ["Data File", "Results File"]:
+            create_indexes_for_identifier_columns(context, resource)
 
     # doesn't actually run for some reason
     def before_delete(self, context, resource, resources):
