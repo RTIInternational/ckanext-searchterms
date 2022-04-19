@@ -99,6 +99,13 @@ def check_search_terms_resource(resource, resource_was_updated=False):
             searchterms_df = remove_resource_from_search_terms(rsrc_col, searchterms_df)
         searchterms_df = update_searchterms(rsrc_col, new_terms_df, searchterms_df)
         delete_existing_search_terms(resource)
+        new_column_order = [
+            *get_identifiercols(searchterms_df),
+            *get_termcols(searchterms_df),
+            *get_rsrccols(searchterms_df),
+            "search_index",
+        ]
+        searchterms_df = searchterms_df[new_column_order]
     else:
         searchterms_df = new_terms_df
     searchterms_df = add_search_index_to_search_terms(searchterms_df)
