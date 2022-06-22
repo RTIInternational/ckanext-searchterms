@@ -174,12 +174,34 @@ def update_search_terms_on_delete(resource):
         # Delete the old search_terms file
         tk.get_action("resource_delete")(site_user_context(), {"id": searchterms_id})
 
-    # Upload the new search_terms file (that has removed the old resource ID)
+    # Save or upload the new search_terms file (that has removed the old resource ID)
     save_file(searchterms_df, dataset.get("id"))
     return searchterms_df
 
 
 def save_file(searchterms_df, dataset_id):
+    if os.getenv("SEARCHTERMS_UPLOAD_REMOTE", False):
+        save_and_upload_file(searchterms_df, dataset_id)
+    else:
+        resource_metadata = {
+            "name": TERMS_RSRC_NAME,
+            "resource_file_type": "",
+            "package_id": dataset_id,
+            "upload": {
+                "filename": "searchterms-{}".format(uuid.uuid4()),
+                "df": searchterms_df,
+            },
+        }
+        log.info("Creating search terms resource for dataset {}...".format(dataset_id))
+        rsrc = tk.get_action("resource_create")(site_user_context(), resource_metadata)
+        log.info(
+            "Created search terms resource {} for dataset {}".format(
+                rsrc.get("id"), dataset_id
+            )
+        )
+
+
+def save_and_upload_file(searchterms_df, dataset_id):
     # Write tmp file
     log.info("Writing temporary searchterms file to disk")
     tsv_filename = os.path.join("/tmp", "searchterms-{}".format(uuid.uuid4())) + ".tsv"
@@ -189,23 +211,21 @@ def save_file(searchterms_df, dataset_id):
     searchterms_df.to_csv(tsv_filename, sep="\t", index=False, na_rep="")
 
     # Upload tmp file to CKAN
-    upload_to_ckan(tsv_filename, TERMS_RSRC_NAME, dataset_id)
+    upload_to_ckan(tsv_filename, dataset_id)
 
     # Remove tmp file
     os.remove(tsv_filename)
 
 
-def upload_to_ckan(filepath, name, dataset_id):
+def upload_to_ckan(filepath, dataset_id):
     log.info("Uploading search terms file from disk to ckan")
     with open(filepath, "rb") as file:
         resource_metadata = {
-            "name": name,
+            "name": TERMS_RSRC_NAME,
             "resource_file_type": "",
             "package_id": dataset_id,
             "upload": FileStorage(file),
         }
-        # TODO: move the file to its destination on the filesystem instead of uploading to the server
-        # Possibly by implementing get_resource_uploader()
         rsrc = tk.get_action("resource_create")(site_user_context(), resource_metadata)
         log.info(
             "Created search terms resource {} for dataset {}".format(

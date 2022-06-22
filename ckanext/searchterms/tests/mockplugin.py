@@ -16,5 +16,5 @@ class SearchtermsMockPlugin(p.SingletonPlugin):
     def is_eligible_for_searchterms(self, resource):
         return True
 
-    def get_searchterms(self, resource):
-        return pd.DataFrame(["Dummy", "List"])
+    def get_searchterms(self, resource, dataset, existing_terms):
+        return pd.DataFrame({"Term_1": ["Apple", "Orange"]})

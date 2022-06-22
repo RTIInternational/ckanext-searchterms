@@ -33,12 +33,12 @@ def get_terms(resource, dataset, existing_terms=None):
     that returns a dataframe of search terms
     """
 
-    eligibility_func = None
+    searchterms_func = None
     for plugin in p.PluginImplementations(ISearchterms):
         if hasattr(plugin, "get_searchterms"):
-            eligibility_func = plugin.get_searchterms
+            searchterms_func = plugin.get_searchterms
 
-    if eligibility_func is None:
+    if searchterms_func is None:
         raise Exception("No plugin implementing ISearchterms was found.")
 
-    return eligibility_func(resource, dataset, existing_terms)
+    return searchterms_func(resource, dataset, existing_terms)

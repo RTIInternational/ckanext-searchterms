@@ -18,6 +18,7 @@ from .util import (
     get_resource_file_path,
     site_user_context,
 )
+from .uploader import ResourceUpload
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IClick)
+    plugins.implements(plugins.IUploader)
 
     # IResourceController
     def before_update(self, context, current, resource):
@@ -107,3 +109,14 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
         from .click import get_commands
 
         return get_commands()
+
+    #######################################################################
+    # IUploader                                                           #
+    # Allows creating search term resources by saving to the local        #
+    # filesystem instead of uploading a local file to a remote CKAN       #
+    #######################################################################
+    def get_resource_uploader(self, data_dict):
+        if data_dict.get("name") == TERMS_RSRC_NAME:
+            return ResourceUpload(data_dict)
+
+        return None  # CKAN will use its default resource upload
