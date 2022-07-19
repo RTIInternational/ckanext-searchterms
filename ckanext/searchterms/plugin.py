@@ -37,7 +37,7 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IClick)
-    plugins.implements(plugins.IUploader)
+    plugins.implements(plugins.IUploader, inherit=True)
 
     # IResourceController
     def before_update(self, context, current, resource):
