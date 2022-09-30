@@ -213,11 +213,11 @@ def upload_to_ckan(filepath, name, dataset_id):
             )
         )
 
-    updatedPackage = tk.get_action("package_show")(
-        site_user_context(), {"id": dataset_id}
+    # After uploading searchterms resource, clear any searchterms error message
+    final = tk.get_action("package_revise")(
+        site_user_context(),
+        {"match": {"id": dataset_id}, "update": {SEARCHTERMS_ERROR: BLANK}},
     )
-    updatedPackage[SEARCHTERMS_ERROR] = BLANK
-    final = tk.get_action("package_update")(site_user_context(), updatedPackage)
     return final
 
 
