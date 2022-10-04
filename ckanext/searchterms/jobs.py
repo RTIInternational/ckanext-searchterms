@@ -52,7 +52,7 @@ def get_existing_search_terms_df_from_csv(pkg):
             filepath = get_resource_file_path(rsc.get("id"))
             search_terms_resource_id = rsc.get("id")
             try:
-                search_terms_df = pd.read_csv(filepath, sep="\t")
+                search_terms_df = pd.read_csv(filepath, sep="\t", dtype=str)
                 # Check for old schema
                 if "found_in_1" in search_terms_df.columns:
                     log.info("Old schema detected; deleting old search terms resource")
@@ -206,28 +206,47 @@ def upload_to_ckan(filepath, name, dataset_id):
         }
         # TODO: move the file to its destination on the filesystem instead of uploading to the server
         # Possibly by implementing get_resource_uploader()
-        rsrc = tk.get_action("resource_create")(site_user_context(), resource_metadata)
+        pkg = tk.get_action("package_revise")(
+            site_user_context(),
+            {
+                "match__id": dataset_id,
+                "update__resources__extend": [resource_metadata],
+                "update": {SEARCHTERMS_ERROR: BLANK},
+            },
+        )
         log.info(
-            "Created search terms resource {} for dataset {}".format(
-                rsrc.get("id"), dataset_id
+            "Created search terms resource for {} for dataset {}".format(
+                name, dataset_id
             )
         )
 
-    # After uploading searchterms resource, clear any searchterms error message
-    final = tk.get_action("package_revise")(
-        site_user_context(),
-        {"match": {"id": dataset_id}, "update": {SEARCHTERMS_ERROR: BLANK}},
-    )
-    return final
+    return pkg
 
 
 def delete_existing_search_terms(resource):
     pkg = tk.get_action("package_show")(
         site_user_context(), {"id": resource.get("package_id")}
     )
-    for res in pkg.get("resources"):
-        if res.get("name") == TERMS_RSRC_NAME:
-            tk.get_action("resource_delete")(site_user_context(), res)
+    # Get all searchterm resources in package
+    resources = [
+        res for res in pkg.get("resources") if res.get("name") == TERMS_RSRC_NAME
+    ]
+    # Build filter arguments for removing resources with package_revise
+    resource_filters = []
+    for resource in resources:
+        log.info(
+            "Deleting existing searchterms resource file with resource id: {}".format(
+                resource.get("id")
+            )
+        )
+        resource_filters.append("-resources__{}".format(resource.get("id")))
+    tk.get_action("package_revise")(
+        site_user_context(),
+        {
+            "match__id": pkg.get("id"),
+            "filter": resource_filters,
+        },
+    )
 
 
 def add_search_index_to_search_terms(searchterms_df):
