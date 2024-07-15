@@ -1,4 +1,5 @@
 """Tests for plugin.py."""
+
 import pytest
 
 from ckanext.searchterms.implementations import (

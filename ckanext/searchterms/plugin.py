@@ -67,11 +67,20 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
             )
         )
         if len(filteredResources):
+
+            def is_valid_string(value):
+                return isinstance(value, str) and value.strip() not in [
+                    "True",
+                    "False",
+                    "",
+                ]
+
             fpath = get_resource_file_path(filteredResources[0].get("id"))
             if exists(fpath):
                 try:
-                    df = pd.read_csv(fpath, sep="\t")
-                    data = df.values.flatten().tolist()
+                    df = pd.read_csv(fpath, sep="\t", dtype=str)
+                    all_data = df.values.flatten().tolist()
+                    data = [item for item in all_data if is_valid_string(item)]
                     hundreds = math.ceil(len(data) / float(100))
                     for i in range(int(hundreds)):
 

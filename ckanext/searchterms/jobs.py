@@ -17,6 +17,7 @@ from .util import (
 
 log = logging.getLogger(__name__)
 
+
 # If resource is eligible, add terms job to worker queue
 def enqueue_terms_job(resource):
     # Check package_id exists to make sure it's not a package
