@@ -38,25 +38,25 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IClick)
 
     # IResourceController
-    def before_update(self, context, current, resource):
+    def before_resource_update(self, context, current, resource):
         if resource.get("package_id", False):  # have to make sure it's not a package
             context["file_uploaded"] = False
             if resource.get("upload", False):
                 context["file_uploaded"] = True
 
-    def after_create(self, context, resource):
+    def after_resource_create(self, context, resource):
         enqueue_terms_job(resource)
 
-    def after_update(self, context, resource):
+    def after_resource_update(self, context, resource):
         if context.get("file_uploaded"):
             enqueue_terms_job(resource)
 
     # doesn't actually run for some reason
-    def before_delete(self, context, resource, resources):
+    def before_resource_delete(self, context, resource, resources):
         enqueue_terms_update_on_delete_job(resource)
 
     # IPackageController
-    def before_index(self, pkg_dict):
+    def before_dataset_index(self, pkg_dict):
         pkg = tk.get_action("package_show")(
             site_user_context(), {"id": pkg_dict.get("id")}
         )
