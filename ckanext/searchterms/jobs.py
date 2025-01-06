@@ -10,7 +10,6 @@ from .util import (
     BLANK,
     SEARCHTERMS_ERROR,
     TERMS_RSRC_NAME,
-    TRUE,
     get_resource_file_path,
     site_user_context,
 )
@@ -243,6 +242,24 @@ def upload_to_ckan(filepath, name, dataset_id):
                 name, dataset_id
             )
         )
+        pkg = tk.get_action("package_show")(site_user_context(), {"id": dataset_id})
+        # Manually submit searchterms to xloader to make a preview available
+        for resource in pkg.get("resources", []):
+            if (
+                resource.get("name") == TERMS_RSRC_NAME
+                and resource.get("state") == "active"
+                and not resource.get("datastore_active")
+            ):
+                resource_id = resource.get("id")
+                tk.get_action("xloader_submit")(
+                    site_user_context(),
+                    {"resource_id": resource_id, "ignore_hash": True},
+                )
+                log.info(
+                    "Enqueued xloader job for search terms resource {} for dataset {}".format(
+                        resource_id, dataset_id
+                    )
+                )
 
     return pkg
 
