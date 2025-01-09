@@ -7,9 +7,7 @@ from ckan import plugins
 import ckan.plugins.toolkit as tk
 import pandas as pd
 
-from .implementations import is_eligible
 from .jobs import (
-    check_search_terms_resource,
     enqueue_terms_job,
     enqueue_terms_update_on_delete_job,
 )
