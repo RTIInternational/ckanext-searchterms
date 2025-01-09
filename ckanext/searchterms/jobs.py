@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 
 
 # If resource is eligible, add terms job to worker queue
-def enqueue_terms_job(resource):
+def enqueue_terms_job(resource, resource_was_updated=False):
     # Check package_id exists to make sure it's not a package
     if (
         resource.get("name") == TERMS_RSRC_NAME
@@ -48,7 +48,7 @@ def enqueue_terms_job(resource):
     try:
         job = tk.enqueue_job(
             check_search_terms_resource,
-            [resource],
+            [resource, resource_was_updated],
             rq_kwargs={"timeout": 21600},
             queue="searchterms",
         )
