@@ -2,8 +2,12 @@ import os
 import logging
 import pandas as pd
 import uuid
+import datetime
+import json
 from werkzeug.datastructures import FileStorage
 import ckan.plugins.toolkit as tk
+import ckan.plugins as p
+import ckan.model as model
 from .constants import SearchtermsParsingError
 from .implementations import is_eligible, get_terms
 from .util import (
@@ -21,16 +25,48 @@ log = logging.getLogger(__name__)
 def enqueue_terms_job(resource):
     # Check package_id exists to make sure it's not a package
     if (
-        resource.get("name") != TERMS_RSRC_NAME
-        and resource.get("package_id", False)
-        and is_eligible(resource)
+        resource.get("name") == TERMS_RSRC_NAME
+        or not resource.get("package_id", False)
+        or not is_eligible(resource)
     ):
-        tk.enqueue_job(
+        return
+
+    res_id = resource.get("id")
+    task = {
+        "entity_id": res_id,
+        "entity_type": "resource",
+        "task_type": "searchterms",
+        "last_updated": str(datetime.datetime.utcnow()),
+        "state": "submitting",
+        "key": "searchterms",
+        "value": "{}",
+        "error": "{}",
+    }
+    p.toolkit.get_action("task_status_update")(
+        {"session": model.meta.create_local_session(), "ignore_auth": True}, task
+    )
+    try:
+        job = tk.enqueue_job(
             check_search_terms_resource,
             [resource],
             rq_kwargs={"timeout": 21600},
             queue="searchterms",
         )
+    except Exception:
+        log.exception("Unable to queue searchterms res_id=%s", res_id)
+
+    package_id = resource.get("package_id")
+    value = json.dumps(
+        {"job_id": job.id, "package_id": package_id, "resource_id": res_id}
+    )
+
+    task["value"] = value
+    task["state"] = "pending"
+    task["last_updated"] = str(datetime.datetime.utcnow())
+
+    p.toolkit.get_action("task_status_update")(
+        {"session": model.meta.create_local_session(), "ignore_auth": True}, task
+    )
 
 
 def enqueue_terms_update_on_delete_job(resource):
@@ -96,39 +132,82 @@ def check_search_terms_resource(resource, resource_was_updated=False):
     """
     Check for existing searchterms, update if it exists, otherwise create it
     """
-
-    dataset = tk.get_action("package_show")(
-        site_user_context(), {"id": resource.get("package_id")}
+    # Retrieve the existing task_status for this resource's searchterms job
+    res_id = resource.get("id")
+    existing_task = p.toolkit.get_action("task_status_show")(
+        site_user_context(),
+        {"entity_id": res_id, "task_type": "searchterms", "key": "searchterms"},
     )
-    rsrc_id = resource.get("id")
-    rsrc_col = "rsrc-{}".format(rsrc_id)
 
-    searchterms_df = None
-    # Get the search terms resource as a DataFrame, if it exists
-    log.info(f"Generating search terms for resource {resource.get('name')}")
-    searchterms_df, _ = get_existing_search_terms_df_from_csv(dataset)
+    # Update the task_status to 'running'
+    task = {
+        "id": existing_task.get("id"),
+        "entity_id": res_id,
+        "entity_type": "resource",
+        "task_type": "searchterms",
+        "last_updated": str(datetime.datetime.utcnow()),
+        "state": "running",
+        "key": "searchterms",
+        "value": existing_task.get("value", ""),
+        "error": "{}",
+    }
+    p.toolkit.get_action("task_status_update")(
+        {"session": model.meta.create_local_session(), "ignore_auth": True}, task
+    )
+
+    log = logging.getLogger(__name__)
+
     try:
-        new_terms_df = get_terms(resource, dataset, searchterms_df)
-        new_terms_df = create_initial_searchterms(rsrc_col, new_terms_df)
-    except SearchtermsParsingError as e:
-        return add_error(resource, str(e))
-    if searchterms_df is not None:
-        if resource_was_updated and rsrc_col in searchterms_df.columns:
-            searchterms_df = remove_resource_from_search_terms(rsrc_col, searchterms_df)
-        searchterms_df = update_searchterms(rsrc_col, new_terms_df, searchterms_df)
-        delete_existing_search_terms(resource)
-        new_column_order = [
-            *get_identifiercols(searchterms_df),
-            *get_termcols(searchterms_df),
-            *get_rsrccols(searchterms_df),
-            "search_index",
-        ]
-        searchterms_df = searchterms_df[new_column_order]
-    else:
-        searchterms_df = new_terms_df
-    searchterms_df = add_search_index_to_search_terms(searchterms_df)
-    save_file(searchterms_df, dataset.get("id"))
-    return searchterms_df
+        dataset = tk.get_action("package_show")(
+            site_user_context(), {"id": resource.get("package_id")}
+        )
+        rsrc_id = resource.get("id")
+        rsrc_col = "rsrc-{}".format(rsrc_id)
+
+        searchterms_df = None
+        # Get the search terms resource as a DataFrame, if it exists
+        log.info(f"Generating search terms for resource {resource.get('name')}")
+        searchterms_df, _ = get_existing_search_terms_df_from_csv(dataset)
+        try:
+            new_terms_df = get_terms(resource, dataset, searchterms_df)
+            new_terms_df = create_initial_searchterms(rsrc_col, new_terms_df)
+        except SearchtermsParsingError as e:
+            add_error(resource, str(e))
+            raise Exception(
+                f"Error parsing search terms for resource {resource.get('name')}"
+            )
+        if searchterms_df is not None:
+            if resource_was_updated and rsrc_col in searchterms_df.columns:
+                searchterms_df = remove_resource_from_search_terms(
+                    rsrc_col, searchterms_df
+                )
+            searchterms_df = update_searchterms(rsrc_col, new_terms_df, searchterms_df)
+            delete_existing_search_terms(resource)
+            new_column_order = [
+                *get_identifiercols(searchterms_df),
+                *get_termcols(searchterms_df),
+                *get_rsrccols(searchterms_df),
+                "search_index",
+            ]
+            searchterms_df = searchterms_df[new_column_order]
+        else:
+            searchterms_df = new_terms_df
+        searchterms_df = add_search_index_to_search_terms(searchterms_df)
+        save_file(searchterms_df, dataset.get("id"))
+
+        task["state"] = "complete"
+        task["error"] = "{}"
+        p.toolkit.get_action("task_status_update")(
+            {"session": model.meta.create_local_session(), "ignore_auth": True}, task
+        )
+        return searchterms_df
+    except Exception as e:
+        task["state"] = "error"
+        task["error"] = str(e)
+        log.error("searchterms error: {0}".format(str(e)))
+        p.toolkit.get_action("task_status_update")(
+            {"session": model.meta.create_local_session(), "ignore_auth": True}, task
+        )
 
 
 def create_initial_searchterms(rsrc_col, new_terms_df):
