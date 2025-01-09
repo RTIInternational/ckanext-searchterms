@@ -53,7 +53,8 @@ class SearchtermsCmd:
                 validated = False
             if validated:
                 print("Succesfully validated package and submitted " + pkgid)
-                total_res_count += self.resubmit_pkg(validated)
+                res_count = self.resubmit_pkg(validated)
+                total_res_count += res_count if res_count else 0
                 total_pkg_validated_count += 1
                 enqued.append(pkgid)
             else:
