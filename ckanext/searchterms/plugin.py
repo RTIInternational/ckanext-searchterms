@@ -10,6 +10,7 @@ import pandas as pd
 from .jobs import (
     enqueue_terms_job,
     enqueue_terms_update_on_delete_job,
+    enqueue_xloader_searchterms,
 )
 from .util import (
     TERMS_RSRC_NAME,
@@ -44,10 +45,12 @@ class SearchtermsPlugin(plugins.SingletonPlugin):
 
     def after_resource_create(self, context, resource):
         enqueue_terms_job(resource)
+        enqueue_xloader_searchterms(resource.get("package_id"))
 
     def after_resource_update(self, context, resource):
         if context.get("file_uploaded"):
             enqueue_terms_job(resource)
+            enqueue_xloader_searchterms(resource.get("package_id"))
 
     # doesn't actually run for some reason
     def before_resource_delete(self, context, resource, resources):

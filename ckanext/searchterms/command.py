@@ -3,7 +3,11 @@ import ckan.model as model
 import ckan.plugins.toolkit as toolkit
 
 from .implementations import is_eligible
-from .jobs import check_search_terms_resource, enqueue_terms_job
+from .jobs import (
+    check_search_terms_resource,
+    enqueue_terms_job,
+    enqueue_xloader_searchterms,
+)
 
 log = logging.getLogger(__name__)
 
@@ -91,4 +95,13 @@ class SearchtermsCmd:
                     enqueue_terms_job(resource, True)
             else:
                 log.debug("Skipping search terms job for resource " + rsrcid)
+        # a package should only ever have one active searchterms resource file
+        if total_eligible_resources > 0:
+            toolkit.enqueue_job(
+                submit_xloader_searchterms,
+                [pkgid],
+                rq_kwargs={"timeout": 21600},
+                queue="searchterms",
+            )
+            enqueue_xloader_searchterms(pkgid)
         return total_eligible_resources
