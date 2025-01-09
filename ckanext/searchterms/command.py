@@ -98,11 +98,5 @@ class SearchtermsCmd:
                 log.debug("Skipping search terms job for resource " + rsrcid)
         # a package should only ever have one active searchterms resource file
         if total_eligible_resources > 0:
-            toolkit.enqueue_job(
-                submit_xloader_searchterms,
-                [pkgid],
-                rq_kwargs={"timeout": 21600},
-                queue="searchterms",
-            )
             enqueue_xloader_searchterms(pkgid)
         return total_eligible_resources
