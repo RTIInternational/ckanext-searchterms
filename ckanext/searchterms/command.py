@@ -8,6 +8,7 @@ from .jobs import (
     enqueue_terms_job,
     enqueue_xloader_searchterms,
 )
+from .util import TERMS_RSRC_NAME, site_user_context
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class SearchtermsCmd:
         for pkg in package_list.get("results", []):
             total_pkg_count += 1
             pkgid = pkg.get("id") + " (" + pkg.get("name") + ")"
-            print("Validating package " + pkgid)
+            log.info("Validating package " + pkgid)
             enqued = []
             nenqued = []
             try:
@@ -52,19 +53,15 @@ class SearchtermsCmd:
                 log.error("Error validating package " + pkgid)
                 validated = False
             if validated:
-                print("Succesfully validated package and submitted " + pkgid)
+                log.info("Succesfully validated package and submitted " + pkgid)
                 res_count = self.resubmit_pkg(validated)
                 total_res_count += res_count if res_count else 0
                 total_pkg_validated_count += 1
                 enqued.append(pkgid)
             else:
-                print("Unable to validate package " + pkg.get("id", ""))
+                log.info("Unable to validate package " + pkg.get("id", ""))
                 nenqued.append(pkgid)
                 total_pkg_failed_count += 1
-            print("Enqueued:")
-            print(", ".join(enqued))
-            print("Not Enqueued:")
-            print(", ".join(nenqued))
         log.info(
             "Total {} packages found. {} failed validation and did not submit. Submitted {} packages. {} total searchterm jobs".format(
                 total_pkg_count,
@@ -83,6 +80,19 @@ class SearchtermsCmd:
 
         total_eligible_resources = 0
 
+        for resource in package.get("resources", []):
+            if resource.get("name", "") == TERMS_RSRC_NAME:
+                log.info(
+                    "Deleting old search terms resource for package {0}".format(pkgid)
+                )
+                toolkit.get_action("package_revise")(
+                    site_user_context(),
+                    {
+                        "match__id": package.get("id"),
+                        "filter": ["-resources__{}".format(resource.get("id"))],
+                    },
+                )
+
         log.info("Starting search terms job for package {0}".format(pkgid))
         for resource in package.get("resources", []):
             rsrcid = resource.get("id") + " (" + resource.get("name") + ")"
@@ -97,6 +107,5 @@ class SearchtermsCmd:
             else:
                 log.debug("Skipping search terms job for resource " + rsrcid)
         # a package should only ever have one active searchterms resource file
-        if total_eligible_resources > 0:
-            enqueue_xloader_searchterms(pkgid)
+        enqueue_xloader_searchterms(package.get("id"))
         return total_eligible_resources
